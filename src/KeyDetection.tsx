@@ -196,8 +196,6 @@ export default function KeyDetection() {
       // Sort by correlation
       allCorrelations.sort((a, b) => b.correlation - a.correlation);
       const best = allCorrelations[0];
-      const secondBest = allCorrelations[1];
-      const _confidence = best.correlation - secondBest.correlation;
 
       setResult({
         key: best.key,
