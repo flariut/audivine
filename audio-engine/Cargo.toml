@@ -18,6 +18,7 @@ hound = "3.5"              # WAV I/O (decode + encode)
 claxon = "0.4"             # FLAC decoding
 ebur128 = "0.1"            # LUFS measurement (ITU-R BS.1770-4)
 rustfft = "6"              # FFT for spectral tilt measurement
+serde_bytes = "0.11.19"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

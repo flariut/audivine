@@ -16,7 +16,7 @@ self.onmessage = async (e) => {
         });
       }
       
-      self.postMessage({ id, type: 'SUCCESS', result, returnedStems: payload }, { transfer: transferables });
+      self.postMessage({ id, type: 'SUCCESS', result, returnedStems: payload }, transferables);
     } 
     else if (type === 'PROCESS') {
       const { stems, targetLufs, targetTilt, targetPeak } = payload;
@@ -32,7 +32,7 @@ self.onmessage = async (e) => {
         });
       }
       
-      self.postMessage({ id, type: 'SUCCESS', result }, { transfer: transferables });
+      self.postMessage({ id, type: 'SUCCESS', result }, transferables);
     }
   } catch (error: any) {
     self.postMessage({ id, type: 'ERROR', error: error.toString() });

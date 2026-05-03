@@ -127,7 +127,7 @@ export default function Normalization() {
       };
       
       worker.addEventListener('message', handleMessage);
-      worker.postMessage({ id, type, payload }, { transfer: transferables });
+      worker.postMessage({ id, type, payload }, transferables);
     });
   };
   
@@ -142,6 +142,7 @@ export default function Normalization() {
   const [truePeakLimit, setTruePeakLimit] = useState(-1.0);
 
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const isProcessingAllRef = React.useRef(false);
 
   const processEntry = async (entry: any, currentPath: string): Promise<{name: string, file: File}[]> => {
     return new Promise((resolve) => {
@@ -220,11 +221,8 @@ export default function Normalization() {
       }));
 
       if (newSongFolders.length > 0) {
-        setFolders(prev => {
-          const updated = [...prev, ...newSongFolders];
-          analyzeFolders(updated);
-          return updated;
-        });
+        setFolders(prev => [...prev, ...newSongFolders]);
+        analyzeFolders(newSongFolders);
       }
     }
   };
@@ -261,6 +259,8 @@ export default function Normalization() {
   };
 
   const handleProcessAll = async () => {
+    if (isProcessingAllRef.current) return;
+    isProcessingAllRef.current = true;
     setIsProcessingAll(true);
     
     let processedFolders = [...folders];
@@ -310,34 +310,33 @@ export default function Normalization() {
       }
     }
 
-    // Export to ZIP if anything succeeded
-    const toZip: Record<string, Uint8Array> = {};
-    let hasFiles = false;
-    
+    // Export to ZIP per folder to prevent Out of Memory crashes
     for (const folder of processedFolders) {
-      if (folder.status === 'done' && folder.processedFiles) {
-        for (const file of folder.processedFiles) {
-          toZip[file.name] = file.uint8;
-          hasFiles = true;
+      if (folder.status === 'done' && folder.processedFiles && folder.processedFiles.length > 0) {
+        try {
+          const toZip: Record<string, Uint8Array> = {};
+          for (const file of folder.processedFiles) {
+            toZip[file.name] = file.uint8;
+          }
+          
+          // Use level: 0 (Store) for WAV files to save massive amounts of CPU and memory
+          const zipped = zipSync(toZip, { level: 0 });
+          const blob = new Blob([zipped], { type: 'application/zip' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${folder.name}_Normalized.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Give browser time to start download before revoking
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          
+        } catch (err) {
+          console.error(`Zip failed for ${folder.name}`, err);
+          alert(`Failed to generate zip file for ${folder.name}`);
         }
-      }
-    }
-
-    if (hasFiles) {
-      try {
-        const zipped = zipSync(toZip);
-        const blob = new Blob([zipped as unknown as BlobPart], { type: 'application/zip' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Normalized_Stems.zip';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error("Zip failed", err);
-        alert("Failed to generate zip file.");
       }
     }
 

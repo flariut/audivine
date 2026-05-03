@@ -30,6 +30,7 @@ pub struct AnalysisResult {
 #[derive(Serialize)]
 pub struct NormalizationResult {
     /// The normalized WAV file bytes.
+    #[serde(with = "serde_bytes")]
     pub wav_bytes: Vec<u8>,
     /// Analysis of the input file.
     pub input_analysis: AnalysisResult,
@@ -410,6 +411,7 @@ pub fn normalize_stems_batch(
     // Build per-stem results (encode WAV + analyze each)
     #[derive(Serialize)]
     struct StemOutput {
+        #[serde(with = "serde_bytes")]
         wav_bytes: Vec<u8>,
         input_analysis: AnalysisResult,
         output_analysis: AnalysisResult,
