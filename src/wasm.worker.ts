@@ -6,7 +6,17 @@ self.onmessage = async (e) => {
   try {
     if (type === 'ANALYZE') {
       const result = wasm.analyze_stems_sum(payload);
-      self.postMessage({ id, type: 'SUCCESS', result });
+      
+      // Transfer the original ArrayBuffers back to the main thread
+      // to avoid memory duplication and crashes
+      const transferables: ArrayBuffer[] = [];
+      if (Array.isArray(payload)) {
+        payload.forEach((u: any) => {
+          if (u.buffer) transferables.push(u.buffer);
+        });
+      }
+      
+      self.postMessage({ id, type: 'SUCCESS', result, returnedStems: payload }, { transfer: transferables });
     } 
     else if (type === 'PROCESS') {
       const { stems, targetLufs, targetTilt, targetPeak } = payload;

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build:wasm": "cd audio-engine && export PATH=\"/Users/flariut/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH\" && wasm-pack build --target bundler --out-dir pkg",
-    "build": "npm run build:wasm && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

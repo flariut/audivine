@@ -110,7 +110,7 @@ export default function Normalization() {
     return () => w.terminate();
   }, []);
 
-  const runWorkerTask = (type: string, payload: any): Promise<any> => {
+  const runWorkerTask = (type: string, payload: any, transferables: Transferable[] = []): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!worker) return reject(new Error("Worker not initialized"));
       const id = Math.random().toString(36).substring(7);
@@ -119,7 +119,7 @@ export default function Normalization() {
         if (e.data.id === id) {
           worker.removeEventListener('message', handleMessage);
           if (e.data.type === 'SUCCESS') {
-            resolve(e.data.result);
+            resolve(e.data); // Return full message payload to access result and returnedStems
           } else {
             reject(new Error(e.data.error));
           }
@@ -127,7 +127,7 @@ export default function Normalization() {
       };
       
       worker.addEventListener('message', handleMessage);
-      worker.postMessage({ id, type, payload });
+      worker.postMessage({ id, type, payload }, { transfer: transferables });
     });
   };
   
@@ -240,9 +240,19 @@ export default function Normalization() {
         // Yield to allow React to paint the "analyzing" state
         await new Promise(r => setTimeout(r, 50));
         const uint8Arrays = folder.files.map(f => new Uint8Array(f.arrayBuffer));
-        const analysis = await runWorkerTask('ANALYZE', uint8Arrays);
+        const transferables = uint8Arrays.map(u => u.buffer);
         
-        setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, status: 'ready', analysis } : f));
+        const response = await runWorkerTask('ANALYZE', uint8Arrays, transferables);
+        const analysis = response.result;
+        const returnedStems = response.returnedStems;
+
+        // Restore the ArrayBuffers back into the folder state so they can be processed later
+        const updatedFiles = folder.files.map((f, idx) => ({
+          ...f,
+          arrayBuffer: returnedStems[idx].buffer
+        }));
+        
+        setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, status: 'ready', analysis, files: updatedFiles } : f));
       } catch (err: any) {
         console.error("Analysis failed for", folder.name, err);
         setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, status: 'error', error: err.toString() } : f));
@@ -266,17 +276,20 @@ export default function Normalization() {
         await new Promise(r => setTimeout(r, 50));
         
         const uint8Arrays = folder.files.map(f => new Uint8Array(f.arrayBuffer));
+        const transferables = uint8Arrays.map(u => u.buffer);
         
         const lufsVal = enableLufs ? targetLufs : folder.analysis.lufs_integrated;
         const tiltVal = enableTilt ? targetTilt : 0.0;
         const peakVal = enableTruePeak ? truePeakLimit : 0.0; // 0.0 will just prevent huge clipping, but usually we pass the exact limit
 
-        const result = await runWorkerTask('PROCESS', {
+        const response = await runWorkerTask('PROCESS', {
           stems: uint8Arrays,
           targetLufs: lufsVal,
           targetTilt: tiltVal,
           targetPeak: peakVal
-        });
+        }, transferables);
+        
+        const result = response.result;
         
         const processedFiles = result.stems.map((stemRes: any, idx: number) => {
           // ensure extension is .wav
