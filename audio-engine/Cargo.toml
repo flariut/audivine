@@ -1,0 +1,27 @@
+[package]
+name = "liveset-audio"
+version = "0.1.0"
+edition = "2024"
+description = "Browser-side audio normalization engine for LiveSet.io"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+
+# Audio processing
+hound = "3.5"              # WAV I/O (decode + encode)
+claxon = "0.4"             # FLAC decoding
+ebur128 = "0.1"            # LUFS measurement (ITU-R BS.1770-4)
+rustfft = "6"              # FFT for spectral tilt measurement
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "s"            # Optimize for size (smaller WASM)
+lto = true

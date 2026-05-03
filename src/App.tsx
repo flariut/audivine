@@ -11,6 +11,7 @@ import SpectrumAnalyzer from './SpectrumAnalyzer';
 import TransientDensity from './TransientDensity';
 import KeyDetection from './KeyDetection';
 import Comparator from './Comparator';
+import Normalization from './Normalization';
 import * as mm from 'music-metadata-browser';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
@@ -47,7 +48,7 @@ function App() {
   const [medianBpm, setMedianBpm] = useState<number | null>(null);
   const [meanBpm, setMeanBpm] = useState<number | null>(null);
   // Tab State
-  const [activeTab, setActiveTab] = useState<'analyzer' | 'taptempo' | 'spectrum' | 'transients' | 'key' | 'compare'>('analyzer');
+  const [activeTab, setActiveTab] = useState<'analyzer' | 'taptempo' | 'spectrum' | 'transients' | 'key' | 'compare' | 'normalize'>('analyzer');
 
   const [timeSigs, setTimeSigs] = useState<{ time: number, sig: string }[]>([]);
   const [songMeta, setSongMeta] = useState<{ title?: string, artist?: string } | null>(null);
@@ -718,8 +719,21 @@ function App() {
           >
             <ArrowsRightLeftIcon width={20} /> Compare
           </button>
+          <button
+            className={`tab-btn ${activeTab === 'normalize' ? 'active' : ''}`}
+            onClick={() => setActiveTab('normalize')}
+            style={{
+              background: 'transparent', border: 'none', color: activeTab === 'normalize' ? 'var(--accent-color)' : 'var(--text-secondary)',
+              padding: '1rem 0', fontSize: '1.1rem', fontWeight: 500, cursor: 'pointer', borderBottom: activeTab === 'normalize' ? '2px solid var(--accent-color)' : '2px solid transparent',
+              display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', marginBottom: '-1px'
+            }}
+          >
+            <Cog6ToothIcon width={20} /> Normalize
+          </button>
         </div>
       </header>
+
+      {activeTab === 'normalize' && <Normalization />}
 
       {activeTab === 'analyzer' && (
         <>
